@@ -64,7 +64,27 @@ class Bottleneck(nn.Module):
         # 4. Add skip connection (identity or downsample if needed)
         # 5. Apply final ReLU activation
         # Remember to handle the downsample path when stride > 1
-        raise NotImplementedError("Bottleneck.forward() not implemented")
+
+        identity = x
+        #1.
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        #2.
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+        #3.
+        out = self.conv3(out)
+        out = self.bn3(out)
+        #4.
+        if hasattr(self, 'downsample'):
+            identity = self.downsample(x) # its spatial/depth dimensions match the main branch output
+        out += identity # residual connection that eases gradient flow
+        #5.
+        out = self.relu(out)
+
+        #raise NotImplementedError("Bottleneck.forward() not implemented")
         # =============================================================
 
 
@@ -115,7 +135,24 @@ class ResNet(nn.Module):
         # 3. Apply global average pooling and flatten
         # 4. Apply final fully connected layer
         # This should match the torchvision ResNet-50 structure
-        raise NotImplementedError("ResNet.forward() not implemented")
+        identity = x
+        #1.
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.maxpool(out)
+        #2.
+        out = self.layer1(out)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = self.layer4(out)
+        #3.
+        out = self.avgpool(out)
+        out = torch.flatten(out, 1)
+        #4.
+        out = self.fc(out)
+
+        #raise NotImplementedError("ResNet.forward() not implemented")
         # ========================================================
 
 
@@ -141,12 +178,17 @@ class BackboneWithFPN(nn.Module):
 
     def forward(self, x: torch.Tensor) -> OrderedDict[str, torch.Tensor]:
         # ===== STUDENT TODO: Implement BackboneWithFPN forward pass =====
+        # if isinstance(x, (list, tuple)):
+        #   x = torch.stack(x)  # stack list of tensors into [B, 3, H, W]
         # Hint: Combine backbone features with FPN:
         # 1. Extract intermediate features using self.body (IntermediateLayerGetter)
+        features = self.body(x)
         # 2. Pass features through FPN (self.fpn) to create feature pyramid
+        features = self.fpn(features)
         # 3. Return the FPN output (OrderedDict of multi-scale features)
+        return features
         # This creates the feature pyramid needed for multi-scale detection
-        raise NotImplementedError("BackboneWithFPN.forward() not implemented")
+        #raise NotImplementedError("BackboneWithFPN.forward() not implemented")
         # =================================================================
 
 
@@ -200,7 +242,39 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
     #    (hint: use backbone.fc.in_features to determine channel progression)
     # 4. Create and return BackboneWithFPN with all components
     # This integrates ResNet feature extraction with FPN multi-scale features
-    raise NotImplementedError("build_resnet50_fpn_backbone() not implemented")
+
+    if config is None:
+        config = ResNetBackboneConfig()
+
+    #1.
+    backbone = ResNet()
+    _load_pretrained_weights(backbone, config)
+    _freeze_backbone_layers(backbone, config.trainable_layers)
+
+    #2.
+    return_layers = {
+        "layer1": "0",
+        "layer2": "1",
+        "layer3": "2",
+        "layer4": "3",
+    }
+
+    #3.
+    in_channels_list = [256, 512, 1024, 2048]
+
+    # 6. FPN output channels
+    out_channels = config.out_channels
+
+    # 7. Build FPN-wrapped backbone
+    backbone_with_fpn = BackboneWithFPN(
+        backbone=backbone,
+        return_layers=return_layers,
+        in_channels_list=in_channels_list,
+        out_channels=out_channels,
+    )
+
+    return backbone_with_fpn
+    #raise NotImplementedError("build_resnet50_fpn_backbone() not implemented")
     # ===================================================================
 
 

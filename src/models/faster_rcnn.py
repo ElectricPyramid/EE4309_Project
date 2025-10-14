@@ -75,6 +75,32 @@ class DetectorConfig:
         }
 
 
+# def build_faster_rcnn(
+#     *,
+#     backbone: BackboneBundle,
+#     anchor_generator: AnchorGenerator,
+#     rpn_head_factory: Callable[[int], nn.Module],
+#     roi_pool: MultiScaleRoIAlign,
+#     num_classes: int,
+#     config: Optional[DetectorConfig] = None,
+# ) -> FasterRCNN:
+#     """Assemble a Faster R-CNN detector from modular components."""
+
+#     # ===== STUDENT TODO: Implement Faster R-CNN assembly =====
+#     # Hint: Build the complete Faster R-CNN detector:
+#     # 1. Get configuration (use default if none provided)
+#     # 2. Create RPN head using the factory with correct number of anchors
+#     # 3. Assemble FasterRCNN with all components:
+#     #    - backbone.body as the feature extractor
+#     #    - anchor_generator for RPN proposals
+#     #    - rpn_head for region proposal network
+#     #    - roi_pool for feature extraction from proposals
+#     #    - config parameters for detection thresholds
+#     # 4. Replace the box predictor head for the correct number of classes
+#     # 5. Return the assembled model
+#     raise NotImplementedError("build_faster_rcnn() not implemented")
+#     # =========================================================
+
 def build_faster_rcnn(
     *,
     backbone: BackboneBundle,
@@ -86,20 +112,31 @@ def build_faster_rcnn(
 ) -> FasterRCNN:
     """Assemble a Faster R-CNN detector from modular components."""
 
-    # ===== STUDENT TODO: Implement Faster R-CNN assembly =====
-    # Hint: Build the complete Faster R-CNN detector:
-    # 1. Get configuration (use default if none provided)
-    # 2. Create RPN head using the factory with correct number of anchors
-    # 3. Assemble FasterRCNN with all components:
-    #    - backbone.body as the feature extractor
-    #    - anchor_generator for RPN proposals
-    #    - rpn_head for region proposal network
-    #    - roi_pool for feature extraction from proposals
-    #    - config parameters for detection thresholds
+    # 1. Use default config if not provided
+    if config is None:
+        config = DetectorConfig()
+
+    # 2. Create RPN head
+    num_anchors = anchor_generator.num_anchors_per_location()[0]
+    rpn_head = rpn_head_factory(num_anchors)
+
+    # 3. Assemble the detector
+    model = FasterRCNN(
+        backbone=backbone.body,
+        num_classes=num_classes,
+        rpn_anchor_generator=anchor_generator,
+        rpn_head=rpn_head,
+        box_roi_pool=roi_pool,
+        **config.to_kwargs(),
+    )
+
     # 4. Replace the box predictor head for the correct number of classes
-    # 5. Return the assembled model
-    raise NotImplementedError("build_faster_rcnn() not implemented")
-    # =========================================================
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+
+    # 5. Return assembled model
+    return model
+
 
 
 def make_standard_rpn_head(in_channels: int) -> Callable[[int], nn.Module]:

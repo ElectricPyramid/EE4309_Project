@@ -119,19 +119,34 @@ def main():
         pbar = tqdm(train_loader, ncols=100, desc=f"train[{epoch}/{args.epochs}]")
         loss_sum = 0.0
 
+        
         for images, targets in pbar:
-            # ===== STUDENT TODO: Implement training step =====
-            # Hint: Complete the training loop:
-            # 1. Use autocast context for mixed precision if enabled
-            # 2. Forward pass: get loss_dict from model(images, targets)
-            # 3. Sum all losses from the loss dictionary
-            # 4. Backward pass: scale losses, compute gradients, step optimizer
-            # 5. Update scaler for mixed precision training
-            raise NotImplementedError("Training step not implemented")
-            # ==================================================
+          print(images[0].shape if images[0] is not None else "None")
+          images = [img.to(device) for img in images]
+          images = torch.stack(images)
+          targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+          optim.zero_grad()
+          with autocast(enabled=use_amp):
+              loss_dict = model(images, targets)
+              losses = sum(loss for loss in loss_dict.values())
+          scaler.scale(losses).backward()
+          scaler.step(optim)
+          scaler.update()
+          loss_sum += losses.item()
+          pbar.set_postfix(loss=f"{losses.item():.3f}")
+        # for images, targets in pbar:
+        #     # ===== STUDENT TODO: Implement training step =====
+        #     # Hint: Complete the training loop:
+        #     # 1. Use autocast context for mixed precision if enabled
+        #     # 2. Forward pass: get loss_dict from model(images, targets)
+        #     # 3. Sum all losses from the loss dictionary
+        #     # 4. Backward pass: scale losses, compute gradients, step optimizer
+        #     # 5. Update scaler for mixed precision training
+        #     raise NotImplementedError("Training step not implemented")
+        #     # ==================================================
 
-            loss_sum += losses.item()
-            pbar.set_postfix(loss=f"{losses.item():.3f}")
+          # loss_sum += losses.item()
+          # pbar.set_postfix(loss=f"{losses.item():.3f}")
 
         sched.step()
         avg_loss = loss_sum / len(train_loader)
@@ -148,7 +163,22 @@ def main():
         # 4. Compute final mAP and extract the "map" value
         # Handle exceptions gracefully and set map50 = -1.0 if evaluation fails
         try:
-            raise NotImplementedError("mAP evaluation not implemented")
+            from torchmetrics.detection.mean_ap import MeanAveragePrecision
+
+            metric = MeanAveragePrecision(iou_type="bbox", iou_thresholds=[0.5])
+            model.eval()
+
+            with torch.no_grad():
+                for images, targets in tqdm(val_loader, ncols=100, desc=f"val[{epoch}]"):
+                    images = [img.to(device) for img in images]
+                    outputs = model(images)  # returns list of predictions
+                    outputs = [{k: v.to("cpu") for k, v in o.items()} for o in outputs]
+                    targets = [{k: v.to("cpu") for k, v in t.items()} for t in targets]
+                    metric.update(outputs, targets)
+
+            map_stats = metric.compute()
+            map50 = map_stats["map"].item()
+            #raise NotImplementedError("mAP evaluation not implemented")
         except Exception as e:
             print("Eval skipped due to:", e)
             map50 = -1.0
