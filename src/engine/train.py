@@ -123,7 +123,7 @@ def main():
         for images, targets in pbar:
           print(images[0].shape if images[0] is not None else "None")
           images = [img.to(device) for img in images]
-          images = torch.stack(images)
+          #images = torch.stack(images)
           targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
           optim.zero_grad()
           with autocast(enabled=use_amp):

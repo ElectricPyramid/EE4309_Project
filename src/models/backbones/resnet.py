@@ -83,7 +83,7 @@ class Bottleneck(nn.Module):
         out += identity # residual connection that eases gradient flow
         #5.
         out = self.relu(out)
-
+        return out
         #raise NotImplementedError("Bottleneck.forward() not implemented")
         # =============================================================
 
@@ -151,7 +151,7 @@ class ResNet(nn.Module):
         out = torch.flatten(out, 1)
         #4.
         out = self.fc(out)
-
+        return out
         #raise NotImplementedError("ResNet.forward() not implemented")
         # ========================================================
 

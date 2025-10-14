@@ -40,34 +40,70 @@ class VOCDataset(Dataset):
         self.transforms = transforms
         self.keep_difficult = keep_difficult
 
+    # def __getitem__(self, idx: int) -> Tuple[Any, Dict[str, torch.Tensor]]:
+    #     item = self.dataset[idx]
+    #     img = Image.fromarray(item["images"].numpy())
+
+    #     boxes = item["boxes/box"].numpy()
+    #     labels = item["boxes/label"].numpy().flatten()
+    #     difficult = item["boxes/difficult"].numpy().flatten()
+
+    #     # Filter out difficult boxes if keep_difficult is False
+    #     if not self.keep_difficult:
+    #         keep_mask = difficult == 0  # Keep non-difficult boxes
+    #         boxes = boxes[keep_mask]
+    #         labels = labels[keep_mask]
+
+    #     iscrowd = torch.zeros(len(boxes), dtype=torch.int64)
+    #     areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+
+    #     target = {
+    #         "boxes": torch.as_tensor(boxes, dtype=torch.float32),
+    #         "labels": torch.as_tensor(labels, dtype=torch.int64),
+    #         "image_id": torch.tensor([idx]),
+    #         "area": torch.as_tensor(areas, dtype=torch.float32),
+    #         "iscrowd": iscrowd,
+    #     }
+
+    #     if self.transforms:
+    #         img, target = self.transforms(img, target)
+    #     return img, target
+
     def __getitem__(self, idx: int) -> Tuple[Any, Dict[str, torch.Tensor]]:
-        item = self.dataset[idx]
-        img = Image.fromarray(item["images"].numpy())
+      try:
+          item = self.dataset[idx]
+          img = Image.fromarray(item["images"].numpy())
 
-        boxes = item["boxes/box"].numpy()
-        labels = item["boxes/label"].numpy().flatten()
-        difficult = item["boxes/difficult"].numpy().flatten()
+          boxes = item["boxes/box"].numpy()
+          labels = item["boxes/label"].numpy().flatten()
+          difficult = item["boxes/difficult"].numpy().flatten()
 
-        # Filter out difficult boxes if keep_difficult is False
-        if not self.keep_difficult:
-            keep_mask = difficult == 0  # Keep non-difficult boxes
-            boxes = boxes[keep_mask]
-            labels = labels[keep_mask]
+          # Filter out difficult boxes if keep_difficult is False
+          if not self.keep_difficult:
+              keep_mask = difficult == 0  # Keep non-difficult boxes
+              boxes = boxes[keep_mask]
+              labels = labels[keep_mask]
 
-        iscrowd = torch.zeros(len(boxes), dtype=torch.int64)
-        areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+          iscrowd = torch.zeros(len(boxes), dtype=torch.int64)
+          areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
 
-        target = {
-            "boxes": torch.as_tensor(boxes, dtype=torch.float32),
-            "labels": torch.as_tensor(labels, dtype=torch.int64),
-            "image_id": torch.tensor([idx]),
-            "area": torch.as_tensor(areas, dtype=torch.float32),
-            "iscrowd": iscrowd,
-        }
+          target = {
+              "boxes": torch.as_tensor(boxes, dtype=torch.float32),
+              "labels": torch.as_tensor(labels, dtype=torch.int64),
+              "image_id": torch.tensor([idx]),
+              "area": torch.as_tensor(areas, dtype=torch.float32),
+              "iscrowd": iscrowd,
+          }
 
-        if self.transforms:
-            img, target = self.transforms(img, target)
-        return img, target
+          if self.transforms:
+              img, target = self.transforms(img, target)
+
+          return img, target
+      except Exception as e:
+          print(f"⚠️ Skipping corrupted or unreadable sample at index {idx}: {e}")
+          # Pick a new valid random sample to replace it
+          new_idx = (idx + 1) % len(self.dataset)
+          return self.__getitem__(new_idx)
 
     def __len__(self) -> int:
         return len(self.dataset)
