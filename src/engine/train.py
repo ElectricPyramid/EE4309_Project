@@ -162,7 +162,7 @@ def main():
 
         sched.step()
         avg_loss = loss_sum / len(train_loader)
-        save_jsonl([{"epoch": epoch, "loss": avg_loss}], os.path.join(args.output, "logs.jsonl"))
+        #save_jsonl([{"epoch": epoch, "loss": avg_loss}], os.path.join(args.output, "logs.jsonl"))
 
         # ===== STUDENT TODO: Implement mAP evaluation =====
         # Hint: Implement validation loop to compute mAP@0.5:
@@ -196,6 +196,7 @@ def main():
             map50 = -1.0
         # ===================================================
 
+        save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50": map50}], os.path.join(args.output, "logs.jsonl"))
         is_best = map50 > best_map
         best_map = max(best_map, map50)
 
