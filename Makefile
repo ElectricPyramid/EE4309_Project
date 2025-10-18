@@ -7,6 +7,8 @@ MODEL_NORMALIZED := $(shell printf '%s' "$(if $(MODEL),$(MODEL),vit)" | tr '[:up
 OUTPUT ?= runs/$(MODEL_NORMALIZED)_voc07
 EPOCHS ?= 1
 BATCH_SIZE ?= 1
+NUM_WORKERS ?= 2
+LR ?= 1e-4
 WEIGHTS ?= runs/$(MODEL_NORMALIZED)_voc07/best.pt
 IMAGE_SET ?= test
 SUBSET_SIZE ?= 500
@@ -30,7 +32,7 @@ samples:  ## Download sample images for inference testing
 	bash scripts/download.sh
 
 train:  ## Train the model (override MODEL=resnet50 etc.)
-	bash scripts/train.sh "$(OUTPUT)" "$(EPOCHS)" "$(BATCH_SIZE)" "$(MODEL_NORMALIZED)"
+	bash scripts/train.sh "$(OUTPUT)" "$(EPOCHS)" "$(BATCH_SIZE)" "$(MODEL_NORMALIZED)" "$(LR)" "$(NUM_WORKERS)"
 
 eval:  ## Evaluate the model (override WEIGHTS=... MODEL=...)
 	bash scripts/evaluate.sh "$(WEIGHTS)" "$(IMAGE_SET)" "$(SUBSET_SIZE)" "$(MODEL_NORMALIZED)"

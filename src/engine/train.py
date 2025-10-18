@@ -5,11 +5,11 @@ from typing import Dict
 import torch
 from torch.utils.data import DataLoader
 from torch.optim import SGD
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import StepLR, LambdaLR
 from torch.cuda.amp import autocast, GradScaler
 from tqdm import tqdm
 
-
+import math
 
 from src.datasets.voc import VOCDataset, collate_fn
 from src.utils.transforms import Compose, ToTensor, RandomHorizontalFlip
@@ -102,9 +102,20 @@ def main():
     model.to(device)
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optim = SGD(params, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+    # optim = SGD(params, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
-    sched = StepLR(optim, step_size=6, gamma=0.1)
+    # sched = StepLR(optim, step_size=6, gamma=0.1)
+
+
+    optim = SGD(params, lr=0.0125, momentum=0.9, weight_decay=1e-4, nesterov=True)
+
+    def lr_lambda(epoch):
+        warmup_epochs = 2
+        if epoch < warmup_epochs:
+            return (epoch + 1) / warmup_epochs
+        return 0.5 * (1 + math.cos(math.pi * (epoch - warmup_epochs) / (args.epochs - warmup_epochs)))
+
+    sched = LambdaLR(optim, lr_lambda=lr_lambda)
 
     # Only enable AMP if CUDA is available and not explicitly disabled
     use_amp = not args.no_amp and device.type == "cuda"
@@ -119,9 +130,9 @@ def main():
         pbar = tqdm(train_loader, ncols=100, desc=f"train[{epoch}/{args.epochs}]")
         loss_sum = 0.0
 
-        
+        i = 0
         for images, targets in pbar:
-          print(images[0].shape if images[0] is not None else "None")
+          #print(images[0].shape if images[0] is not None else "None")
           images = [img.to(device) for img in images]
           #images = torch.stack(images)
           targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
@@ -133,7 +144,8 @@ def main():
           scaler.step(optim)
           scaler.update()
           loss_sum += losses.item()
-          pbar.set_postfix(loss=f"{losses.item():.3f}")
+          if i % 10 == 0: pbar.set_postfix(loss=f"{losses.item():.3f}")
+          i += 1
         # for images, targets in pbar:
         #     # ===== STUDENT TODO: Implement training step =====
         #     # Hint: Complete the training loop:
