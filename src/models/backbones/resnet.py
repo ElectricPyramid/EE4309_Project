@@ -84,8 +84,6 @@ class Bottleneck(nn.Module):
         #5.
         out = self.relu(out)
         return out
-        #raise NotImplementedError("Bottleneck.forward() not implemented")
-        # =============================================================
 
 
 def _make_block(inplanes: int, planes: int, blocks: int, stride: int = 1) -> nn.Sequential:
@@ -152,8 +150,6 @@ class ResNet(nn.Module):
         #4.
         out = self.fc(out)
         return out
-        #raise NotImplementedError("ResNet.forward() not implemented")
-        # ========================================================
 
 
 class BackboneWithFPN(nn.Module):
@@ -182,14 +178,11 @@ class BackboneWithFPN(nn.Module):
         #   x = torch.stack(x)  # stack list of tensors into [B, 3, H, W]
         # Hint: Combine backbone features with FPN:
         # 1. Extract intermediate features using self.body (IntermediateLayerGetter)
-        features = self.body(x)
         # 2. Pass features through FPN (self.fpn) to create feature pyramid
-        features = self.fpn(features)
         # 3. Return the FPN output (OrderedDict of multi-scale features)
+        features = self.body(x)
+        features = self.fpn(features)
         return features
-        # This creates the feature pyramid needed for multi-scale detection
-        #raise NotImplementedError("BackboneWithFPN.forward() not implemented")
-        # =================================================================
 
 
 @dataclass
@@ -274,8 +267,5 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
     )
 
     return backbone_with_fpn
-    #raise NotImplementedError("build_resnet50_fpn_backbone() not implemented")
-    # ===================================================================
-
 
 RESNET_FPN_FEATMAP_NAMES = ("0", "1", "2", "3")

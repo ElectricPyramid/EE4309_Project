@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Optional, Sequence
 
+import torch
 import torch.nn as nn
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
@@ -146,7 +147,6 @@ def make_standard_rpn_head(in_channels: int) -> Callable[[int], nn.Module]:
         return RPNHead(in_channels, num_anchors)
 
     return factory
-
 
 class TwoConvRPNHead(nn.Module):
     """RPN head with stacked conv layers, used for ResNet baselines."""

@@ -153,3 +153,7 @@ inference_results/
 
 # CUDA cache
 .nv/
+
+30Sep_ObjDet_Proj.ipynb
+src/engine/plot.py
+src/models/backbones/vit22.py
